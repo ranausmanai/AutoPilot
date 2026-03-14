@@ -1,24 +1,10 @@
-<p align="center">
-  <h1 align="center">🚀 AutoPilot</h1>
-  <p align="center">
-    <strong>Give it a spec. Walk away. Come back to a built project on GitHub with tweets.</strong>
-  </p>
-  <p align="center">
-    <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white" alt="Python 3.10+"></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
-    <img src="https://img.shields.io/badge/dependencies-zero-orange" alt="Zero Dependencies">
-    <img src="https://img.shields.io/badge/LOC-~1650-purple" alt="Lines of Code">
-    <img src="https://img.shields.io/badge/mode-autonomous-ff6b35" alt="Autonomous">
-  </p>
-</p>
+# 🚀 AutoPilot
 
-<br>
+**Give it a spec. Walk away. Come back to a built project on GitHub with tweets.**
 
-<p align="center">
-  <img src="assets/flow.svg" alt="AutoPilot Flow" width="820">
-</p>
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://python.org) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) ![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-orange) ![Lines of Code](https://img.shields.io/badge/LOC-~1650-purple) ![Autonomous](https://img.shields.io/badge/mode-autonomous-ff6b35)
 
-<br>
+![AutoPilot Flow](assets/flow.svg)
 
 AutoPilot is a single Python file that runs an **autonomous loop**: read your spec, plan features, write code, test it, push to GitHub, tweet about it, wait, repeat. It also has a growth mode that discovers communities and posts across platforms.
 
