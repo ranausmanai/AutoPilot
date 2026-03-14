@@ -297,6 +297,7 @@ ACTION: {{"type": "build", "spec": "the spec text", "name": "project-name"}}
 ACTION: {{"type": "autoship", "spec": "the spec text", "slug": "app-name", "engine": "claude"}}
 ACTION: {{"type": "stop", "name": "project-name"}}
 ACTION: {{"type": "stop_all"}}
+ACTION: {{"type": "restart"}}
 ACTION: {{"type": "thread", "tweets": ["tweet 1", "tweet 2", "tweet 3"]}}
 
 Self-improvement (create reusable tools and skills):
@@ -516,6 +517,7 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
                         ("!thread <topic>", "Compose and post a Twitter thread", False),
                         ("!logs [project]", "Show recent logs", False),
                         ("!projects", "List all projects", False),
+                        ("!restart", "Restart the bot (picks up new skills/code)", False),
                         ("Natural language", "\"how's AutoPilot doing on github?\"\n"
                          "\"search tweets about AI agents\"\n"
                          "\"like that tweet\"\n"
@@ -709,6 +711,15 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
                     "Projects", "\n".join(lines[:15]), color=0x58a6ff,
                 ))
 
+            elif cmd == "!restart":
+                await message.channel.send(embed=make_embed(
+                    "Restarting...",
+                    "Picking up new skills and code. Back in a sec.",
+                    color=0xff9f1c,
+                ))
+                await client.close()
+                os.execv(sys.executable, [sys.executable] + sys.argv)
+
             return  # handled command, don't fall through to conversational
 
         # ── Conversational mode (no ! prefix) ──
@@ -901,6 +912,15 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
                             f"New skill loaded. I'll remember this for next time.",
                             color=0x2ea043,
                         ))
+
+                elif action_type == "restart":
+                    await message.channel.send(embed=make_embed(
+                        "Restarting...",
+                        "Picking up new skills and code. Back in a sec.",
+                        color=0xff9f1c,
+                    ))
+                    await client.close()
+                    os.execv(sys.executable, [sys.executable] + sys.argv)
 
             # if run commands produced output, feed results back to LLM for follow-up
             if run_outputs:
