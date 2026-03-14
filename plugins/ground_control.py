@@ -1,29 +1,26 @@
 #!/usr/bin/env python3
-"""ground control — talk to autopilot from discord.
+"""ground control — your command center for autopilot, from discord.
 
-Your command center for autopilot. Run parallel builds, check status,
-tweet, post to reddit, or just ask what's happening in plain english.
+Run parallel builds, tweet, post threads, search twitter, check github
+stats, monitor engagement, and more. Talk naturally or use commands.
+
+Skills are loaded from markdown files in skills/ — drop a new .md file
+to teach ground control new CLI tools. No code changes needed.
 
 Setup:
   1. Create a bot at https://discord.com/developers/applications
   2. Copy the bot token
-  3. Invite bot to your server (Send Messages, Read Message History, Attach Files)
-  4. Run: python3 ground_control.py --token YOUR_TOKEN --channel CHANNEL_ID
+  3. Invite bot to your server (Send Messages, Read Message History)
+  4. Run: python3 ground_control.py --token YOUR_TOKEN --owner YOUR_USER_ID
 
-Commands:
-  !build <spec>       — start a build (runs in parallel if others are active)
-  !status             — show all active builds
-  !stop <name>        — stop a specific build (or !stop all)
-  !logs [project]     — show recent action log
-  !projects           — list all built projects
-  !tweet <text>       — post a tweet
-  !help               — show commands
-
-Or just talk naturally:
-  "what's it building?"
-  "how long has darktick been running?"
-  "tweet about the new clock app"
-  "find a subreddit for developer tools and post about autoprompt"
+Talk naturally:
+  "build me a todo app with dark mode"
+  "how's AutoPilot doing on github?"
+  "search tweets about AI agents and like the best ones"
+  "write a thread about my new project and post it"
+  "who starred my repo today?"
+  "check my twitter engagement this week"
+  "how many followers do I have?"
   "stop the weather app build"
 """
 
@@ -50,9 +47,20 @@ BUILDS_DIR = Path.home() / ".autopilot" / "builds"
 LOGS_DIR = Path.home() / ".autopilot" / "logs"
 STRATEGY_DIR = Path.home() / ".autopilot" / "strategy"
 SPECS_DIR = Path.home() / ".autopilot" / "specs"
+SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 
 for d in [BUILDS_DIR, LOGS_DIR, STRATEGY_DIR, SPECS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
+
+
+def load_skills():
+    """Load all skill markdown files from the skills/ directory."""
+    if not SKILLS_DIR.exists():
+        return ""
+    skills = []
+    for f in sorted(SKILLS_DIR.glob("*.md")):
+        skills.append(f.read_text().strip())
+    return "\n\n---\n\n".join(skills)
 
 
 # ─── Build Manager ───────────────────────────────────────────────────────────
@@ -261,7 +269,10 @@ def llm_respond(user_message, build_summary, engine="claude"):
     env = os.environ.copy()
     env.pop("CLAUDECODE", None)
 
+    skills = load_skills()
+
     prompt = f"""You are Ground Control, the discord assistant for AutoPilot (an autonomous build + growth engine).
+You run on the user's machine and have access to CLI tools. You can run any command.
 
 CURRENT STATE:
 {build_summary}
@@ -269,22 +280,38 @@ CURRENT STATE:
 AVAILABLE PROJECTS:
 {list_projects_text()}
 
+TOOLS & SKILLS:
+{skills}
+
 USER MESSAGE: {user_message}
 
 Respond conversationally in 1-3 sentences. Be concise and helpful. Sound like a teammate, not a bot.
 
-If the user wants you to DO something (start a build, stop a build, tweet, post to reddit, etc.),
-include an ACTION block at the end of your response in this exact format:
+If the user wants you to DO something, include ACTION blocks at the end of your response.
+You can include MULTIPLE actions — they run in sequence.
 
+Built-in actions:
 ACTION: {{"type": "build", "spec": "the spec text", "name": "project-name"}}
 ACTION: {{"type": "stop", "name": "project-name"}}
 ACTION: {{"type": "stop_all"}}
-ACTION: {{"type": "tweet", "text": "the tweet text"}}
-ACTION: {{"type": "reddit", "subreddit": "r/example", "title": "post title", "body": "post body"}}
-ACTION: {{"type": "discover", "query": "what to search for"}}
+ACTION: {{"type": "thread", "tweets": ["tweet 1", "tweet 2", "tweet 3"]}}
 
-Only include ACTION if the user clearly wants something done. For status questions, just answer.
-Do NOT use em dashes. Do not be overly enthusiastic. Be direct."""
+Generic shell action (use this for twitter CLI, gh CLI, or any command):
+ACTION: {{"type": "run", "command": "twitter post \\"hello world\\"", "label": "Posting tweet"}}
+ACTION: {{"type": "run", "command": "gh api repos/owner/repo --jq '.stargazers_count'", "label": "Checking stars"}}
+
+You can chain multiple run actions:
+ACTION: {{"type": "run", "command": "twitter search \\"AI agents\\" --json -n 5", "label": "Searching tweets"}}
+ACTION: {{"type": "run", "command": "twitter like TWEET_ID", "label": "Liking tweet"}}
+
+Rules:
+- Always add --json flag when you need to parse output from twitter or gh commands
+- For threads: use the built-in thread action, not multiple run actions
+- Keep tweets under 280 characters
+- Only include ACTION if the user clearly wants something done
+- For status/info questions, answer from your knowledge and context
+- Do NOT use em dashes. Do not be overly enthusiastic. Be direct.
+- When the user asks "how is X doing" about a project, check both GitHub stats AND recent tweets about it"""
 
     try:
         if engine == "claude":
@@ -307,20 +334,22 @@ Do NOT use em dashes. Do not be overly enthusiastic. Be direct."""
 
 
 def parse_llm_response(text):
-    """Split LLM response into message and optional action."""
-    action = None
-    message = text
+    """Split LLM response into message and list of actions."""
+    actions = []
+    message_lines = []
 
-    # extract ACTION line
-    match = re.search(r'ACTION:\s*(\{.*\})', text)
-    if match:
-        message = text[:match.start()].strip()
-        try:
-            action = json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
+    for line in text.split("\n"):
+        match = re.match(r'ACTION:\s*(\{.*\})', line.strip())
+        if match:
+            try:
+                actions.append(json.loads(match.group(1)))
+            except json.JSONDecodeError:
+                pass
+        else:
+            message_lines.append(line)
 
-    return message, action
+    message = "\n".join(message_lines).strip()
+    return message, actions
 
 
 def list_projects_text():
@@ -344,16 +373,71 @@ def do_tweet(text):
     """Post a tweet using twitter-cli."""
     try:
         result = subprocess.run(
-            ["twitter", "post", text],
+            ["twitter", "post", "--json", text],
             capture_output=True, text=True, timeout=30,
         )
-        if result.returncode == 0:
-            return True, result.stdout.strip()[:200]
-        return False, (result.stderr or result.stdout).strip()[:200]
+        output = result.stdout.strip()
+        try:
+            data = json.loads(output)
+            if data.get("ok"):
+                tweet_id = data.get("data", {}).get("id", "")
+                url = data.get("data", {}).get("url", "")
+                return True, url or f"Posted (id: {tweet_id})"
+            else:
+                err = data.get("error", {}).get("message", "Unknown error")
+                return False, err
+        except json.JSONDecodeError:
+            if result.returncode == 0:
+                return True, output[:200]
+            return False, output[:200]
     except FileNotFoundError:
         return False, "twitter-cli not installed"
     except Exception as e:
         return False, str(e)
+
+
+def do_thread(tweets):
+    """Post a Twitter thread. tweets is a list of strings."""
+    if not tweets:
+        return False, "No tweets to post"
+
+    results = []
+    last_id = None
+
+    for i, tweet_text in enumerate(tweets):
+        try:
+            if i == 0:
+                # first tweet
+                cmd = ["twitter", "post", "--json", tweet_text]
+            else:
+                # reply to previous tweet
+                cmd = ["twitter", "reply", "--json", last_id, tweet_text]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            output = result.stdout.strip()
+
+            try:
+                data = json.loads(output)
+                if data.get("ok"):
+                    last_id = data.get("data", {}).get("id", "")
+                    url = data.get("data", {}).get("url", "")
+                    results.append(f"Tweet {i+1}: {url}")
+                else:
+                    err = data.get("error", {}).get("message", "Unknown error")
+                    results.append(f"Tweet {i+1}: FAILED - {err}")
+                    return False, "\n".join(results)
+            except json.JSONDecodeError:
+                if result.returncode == 0:
+                    results.append(f"Tweet {i+1}: posted")
+                else:
+                    results.append(f"Tweet {i+1}: FAILED - {output[:100]}")
+                    return False, "\n".join(results)
+
+        except Exception as e:
+            results.append(f"Tweet {i+1}: FAILED - {e}")
+            return False, "\n".join(results)
+
+    return True, "\n".join(results)
 
 
 # ─── Bot ─────────────────────────────────────────────────────────────────────
@@ -412,15 +496,21 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
             if cmd == "!help":
                 await message.channel.send(embed=make_embed(
                     "Ground Control",
-                    "Talk naturally or use commands:",
+                    "Talk naturally or use commands. I can run twitter, github, and autopilot commands.",
                     color=0x58a6ff,
                     fields=[
                         ("!build <spec>", "Start a build (parallel OK)", False),
                         ("!status", "Show all active builds", False),
                         ("!stop <name>", "Stop a build (!stop all for all)", False),
                         ("!tweet <text>", "Post a tweet", False),
+                        ("!thread <topic>", "Compose and post a Twitter thread", False),
                         ("!logs [project]", "Show recent logs", False),
                         ("!projects", "List all projects", False),
+                        ("Natural language", "\"how's AutoPilot doing on github?\"\n"
+                         "\"search tweets about AI agents\"\n"
+                         "\"like that tweet\"\n"
+                         "\"check my follower count\"\n"
+                         "\"who starred my repo today?\"", False),
                     ]
                 ))
 
@@ -529,6 +619,42 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
                     result, color=color,
                 ))
 
+            elif cmd == "!thread":
+                if not args:
+                    await message.channel.send(
+                        "Tell me what to thread about and I'll compose it.\n"
+                        "Example: `!thread write a thread about my AutoPilot project`")
+                    return
+                # use LLM to compose the thread
+                async with message.channel.typing():
+                    compose_result = await loop.run_in_executor(
+                        None, llm_respond,
+                        f"Write a Twitter thread about: {args}\n\n"
+                        f"Return it as ACTION: {{\"type\": \"thread\", \"tweets\": [\"tweet1\", \"tweet2\", ...]}}.\n"
+                        f"Each tweet must be under 280 characters. Make it engaging. 4-7 tweets is ideal. "
+                        f"First tweet should hook. Last tweet should have a call to action.",
+                        builds.get_summary(), engine
+                    )
+                response_text, thread_actions = compose_result
+                if response_text:
+                    await message.channel.send(response_text[:2000])
+                thread_action = next((a for a in thread_actions if a.get("type") == "thread"), None)
+                if thread_action:
+                    tweets = thread_action.get("tweets", [])
+                    if tweets:
+                        # show preview
+                        preview = "\n\n".join(f"**{i+1}.** {t}" for i, t in enumerate(tweets))
+                        await message.channel.send(embed=make_embed(
+                            f"Posting thread ({len(tweets)} tweets)...",
+                            preview[:4000], color=0x1da1f2,
+                        ))
+                        ok, result = do_thread(tweets)
+                        color = 0x2ea043 if ok else 0xda3633
+                        await message.channel.send(embed=make_embed(
+                            "Thread Posted" if ok else "Thread Failed",
+                            result[:2000], color=color,
+                        ))
+
             elif cmd == "!logs":
                 project = args.strip()
                 if not project:
@@ -578,7 +704,7 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
         # ── Conversational mode (no ! prefix) ──
         async with message.channel.typing():
             build_summary = builds.get_summary()
-            response, action = await loop.run_in_executor(
+            response, actions = await loop.run_in_executor(
                 None, llm_respond, content, build_summary, engine
             )
 
@@ -586,8 +712,8 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
         if response:
             await message.channel.send(response[:2000])
 
-        # execute action if any
-        if action:
+        # execute actions
+        for action in actions:
             action_type = action.get("type")
 
             if action_type == "build":
@@ -627,6 +753,48 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
                         f"{text}\n\n{result}", color=color,
                     ))
 
+            elif action_type == "thread":
+                tweets = action.get("tweets", [])
+                if tweets:
+                    preview = "\n\n".join(f"**{i+1}.** {t}" for i, t in enumerate(tweets))
+                    await message.channel.send(embed=make_embed(
+                        f"Posting thread ({len(tweets)} tweets)...",
+                        preview[:4000], color=0x1da1f2,
+                    ))
+                    ok, result = do_thread(tweets)
+                    color = 0x2ea043 if ok else 0xda3633
+                    await message.channel.send(embed=make_embed(
+                        "Thread Posted" if ok else "Thread Failed",
+                        result[:2000], color=color,
+                    ))
+
+            elif action_type == "run":
+                cmd = action.get("command", "")
+                label = action.get("label", "Running command")
+                if cmd:
+                    await message.channel.send(embed=make_embed(
+                        label, f"```\n{cmd}\n```", color=0xa78bfa,
+                    ))
+                    try:
+                        result = await loop.run_in_executor(
+                            None, lambda c=cmd: subprocess.run(
+                                c, shell=True, capture_output=True,
+                                text=True, timeout=60,
+                            )
+                        )
+                        output = (result.stdout + result.stderr).strip()
+                        if output:
+                            # truncate for discord
+                            if len(output) > 1800:
+                                output = output[:1800] + "\n... (truncated)"
+                            await message.channel.send(f"```\n{output}\n```")
+                        else:
+                            await message.channel.send("`(no output)`")
+                    except subprocess.TimeoutExpired:
+                        await message.channel.send("`(command timed out)`")
+                    except Exception as e:
+                        await message.channel.send(f"`Error: {e}`")
+
             elif action_type == "reddit":
                 sub = action.get("subreddit", "")
                 title = action.get("title", "")
@@ -636,26 +804,8 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
                     f"**{title}**\n\n{body[:1500]}",
                     color=0xff4500,
                     fields=[("Note", "Reddit posting requires browser auth. "
-                             "Copy this and post manually, or set up autopilot's reddit integration.", False)],
+                             "Copy this and post manually.", False)],
                 ))
-
-            elif action_type == "discover":
-                query = action.get("query", "")
-                await message.channel.send(embed=make_embed(
-                    "Discovering communities...",
-                    f"Searching for: {query}",
-                    color=0xa78bfa,
-                ))
-                # run discovery through autopilot's LLM
-                disc_result = await loop.run_in_executor(
-                    None, lambda: llm_respond(
-                        f"Find 5-10 online communities where I can share: {query}. "
-                        f"List them with platform, name, and why they'd be good.",
-                        "", engine
-                    )
-                )
-                if disc_result[0]:
-                    await message.channel.send(disc_result[0][:2000])
 
     client.run(token)
 
