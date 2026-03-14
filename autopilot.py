@@ -649,6 +649,7 @@ def llm_agent(prompt, workdir, engine, timeout=None, reasoning=None):
     try:
         proc = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
             text=True, cwd=str(workdir), env=env,
         )
 
