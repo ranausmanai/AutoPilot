@@ -49,8 +49,9 @@ LOGS_DIR = Path.home() / ".autopilot" / "logs"
 STRATEGY_DIR = Path.home() / ".autopilot" / "strategy"
 SPECS_DIR = Path.home() / ".autopilot" / "specs"
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+TOOLS_DIR = Path(__file__).resolve().parent / "tools"
 
-for d in [BUILDS_DIR, LOGS_DIR, STRATEGY_DIR, SPECS_DIR]:
+for d in [BUILDS_DIR, LOGS_DIR, STRATEGY_DIR, SPECS_DIR, TOOLS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 
@@ -298,9 +299,14 @@ ACTION: {{"type": "stop", "name": "project-name"}}
 ACTION: {{"type": "stop_all"}}
 ACTION: {{"type": "thread", "tweets": ["tweet 1", "tweet 2", "tweet 3"]}}
 
+Self-improvement (create reusable tools and skills):
+ACTION: {{"type": "create_tool", "name": "tool_name.py", "code": "#!/usr/bin/env python3\\n..."}}
+ACTION: {{"type": "create_skill", "name": "skill_name.md", "content": "# Skill Name\\n..."}}
+
 Generic shell action (use this for twitter CLI, gh CLI, or any command):
 ACTION: {{"type": "run", "command": "twitter post \\"hello world\\"", "label": "Posting tweet"}}
 ACTION: {{"type": "run", "command": "gh api repos/owner/repo --jq '.stargazers_count'", "label": "Checking stars"}}
+ACTION: {{"type": "run", "command": "python3 plugins/tools/my_tool.py args", "label": "Running custom tool"}}
 
 You can chain multiple run actions:
 ACTION: {{"type": "run", "command": "twitter search \\"AI agents\\" --json -n 5", "label": "Searching tweets"}}
@@ -313,7 +319,9 @@ Rules:
 - Only include ACTION if the user clearly wants something done
 - For status/info questions, answer from your knowledge and context
 - Do NOT use em dashes. Do not be overly enthusiastic. Be direct.
-- When the user asks "how is X doing" about a project, check both GitHub stats AND recent tweets about it"""
+- When the user asks "how is X doing" about a project, check both GitHub stats AND recent tweets about it
+- If you can't do something with existing skills, CREATE a new tool and skill for it. Write a script to plugins/tools/, document it in plugins/skills/, then use it. You are self-improving.
+- Tools you create persist. Next time someone asks for the same thing, the skill will already be loaded."""
 
     try:
         if engine == "claude":
@@ -868,6 +876,31 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
                         fields=[("Note", "Reddit posting requires browser auth. "
                                  "Copy this and post manually.", False)],
                     ))
+
+                elif action_type == "create_tool":
+                    name = action.get("name", "")
+                    code = action.get("code", "")
+                    if name and code:
+                        tool_path = TOOLS_DIR / name
+                        tool_path.write_text(code)
+                        tool_path.chmod(0o755)
+                        await message.channel.send(embed=make_embed(
+                            f"Tool Created: {name}",
+                            f"```\n{code[:1500]}\n```",
+                            color=0x2ea043,
+                        ))
+
+                elif action_type == "create_skill":
+                    name = action.get("name", "")
+                    skill_content = action.get("content", "")
+                    if name and skill_content:
+                        skill_path = SKILLS_DIR / name
+                        skill_path.write_text(skill_content)
+                        await message.channel.send(embed=make_embed(
+                            f"Skill Learned: {name}",
+                            f"New skill loaded. I'll remember this for next time.",
+                            color=0x2ea043,
+                        ))
 
             # if run commands produced output, feed results back to LLM for follow-up
             if run_outputs:
