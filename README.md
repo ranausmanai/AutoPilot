@@ -1,10 +1,18 @@
+<div align="center">
+
 # 🚀 AutoPilot
 
 **Give it a spec. Walk away. Come back to a built project on GitHub with tweets.**
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://python.org) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) ![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-orange) ![Lines of Code](https://img.shields.io/badge/LOC-~1650-purple) ![Autonomous](https://img.shields.io/badge/mode-autonomous-ff6b35)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-orange)
+![Lines of Code](https://img.shields.io/badge/LOC-~1650-purple)
+![Autonomous](https://img.shields.io/badge/mode-autonomous-ff6b35)
 
-![AutoPilot Flow](assets/flow.svg)
+<img src="assets/flow.svg" alt="AutoPilot Flow" width="820">
+
+</div>
 
 AutoPilot is a single Python file that runs an **autonomous loop**: read your spec, plan features, write code, test it, push to GitHub, tweet about it, wait, repeat. It also has a growth mode that discovers communities and posts across platforms.
 

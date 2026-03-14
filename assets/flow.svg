@@ -1,128 +1,102 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500" viewBox="0 0 900 500">
 
-  <!-- Background -->
   <rect width="900" height="500" rx="12" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
 
-  <!-- Title -->
-  <text x="450" y="38" text-anchor="middle" fill="#f0f6fc" font-size="20" font-weight="700">AutoPilot</text>
-  <text x="450" y="58" text-anchor="middle" fill="#8b949e" font-size="12">spec in  ·  built project + github repo + tweets out</text>
+  <text x="450" y="38" text-anchor="middle" fill="#f0f6fc" font-size="20" font-weight="bold" font-family="Arial, sans-serif">AutoPilot</text>
+  <text x="450" y="58" text-anchor="middle" fill="#8b949e" font-size="12" font-family="Arial, sans-serif">spec in  ·  built project + github repo + tweets out</text>
 
-  <!-- ===== LEFT: Build Mode ===== -->
-  <text x="300" y="90" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="700">BUILD MODE</text>
+  <text x="300" y="90" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="bold" font-family="Arial, sans-serif">BUILD MODE</text>
 
-  <!-- YOU bubble -->
   <rect x="30" y="185" width="110" height="50" rx="25" fill="none" stroke="#ff9f1c" stroke-width="2"/>
-  <text x="85" y="207" text-anchor="middle" fill="#ff9f1c" font-size="12" font-weight="600">YOU</text>
-  <text x="85" y="222" text-anchor="middle" fill="#8b949e" font-size="9">write spec.md</text>
+  <text x="85" y="207" text-anchor="middle" fill="#ff9f1c" font-size="12" font-weight="bold" font-family="Arial, sans-serif">YOU</text>
+  <text x="85" y="222" text-anchor="middle" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">write spec.md</text>
 
-  <!-- Arrow: YOU to Build -->
-  <line x1="140" y1="210" x2="188" y2="210" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="188,205 198,210 188,215" fill="#484f58"/>
+  <line x1="140" y1="210" x2="193" y2="210" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="193,205 203,210 193,215" fill="#484f58"/>
 
-  <!-- Step 1: Plan -->
   <rect x="200" y="105" width="130" height="48" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
-  <text x="265" y="127" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="700">1. PLAN</text>
-  <text x="265" y="142" text-anchor="middle" fill="#8b949e" font-size="9">pick 2-4 features</text>
+  <text x="265" y="127" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold" font-family="Arial, sans-serif">1. PLAN</text>
+  <text x="265" y="142" text-anchor="middle" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">pick 2-4 features</text>
 
-  <!-- Step 2: Build -->
   <rect x="200" y="185" width="130" height="48" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
-  <text x="265" y="207" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="700">2. BUILD</text>
-  <text x="265" y="222" text-anchor="middle" fill="#8b949e" font-size="9">codex / claude</text>
+  <text x="265" y="207" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold" font-family="Arial, sans-serif">2. BUILD</text>
+  <text x="265" y="222" text-anchor="middle" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">codex / claude</text>
 
-  <!-- Step 3: Test -->
   <rect x="200" y="265" width="130" height="48" rx="8" fill="#161b22" stroke="#56d364" stroke-width="1.5"/>
-  <text x="265" y="287" text-anchor="middle" fill="#56d364" font-size="11" font-weight="700">3. TEST</text>
-  <text x="265" y="302" text-anchor="middle" fill="#8b949e" font-size="9">every 2 iterations</text>
+  <text x="265" y="287" text-anchor="middle" fill="#56d364" font-size="11" font-weight="bold" font-family="Arial, sans-serif">3. TEST</text>
+  <text x="265" y="302" text-anchor="middle" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">every 2 iterations</text>
 
-  <!-- Arrows down: Plan->Build->Test -->
-  <line x1="265" y1="153" x2="265" y2="181" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="260,181 265,191 270,181" fill="#484f58" transform="translate(0,-6)"/>
-  <line x1="265" y1="233" x2="265" y2="261" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="260,261 265,271 270,261" fill="#484f58" transform="translate(0,-6)"/>
+  <line x1="265" y1="153" x2="265" y2="182" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="260,179 265,189 270,179" fill="#484f58"/>
+  <line x1="265" y1="233" x2="265" y2="262" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="260,259 265,269 270,259" fill="#484f58"/>
 
-  <!-- Arrow right: Test->Commit -->
-  <line x1="330" y1="289" x2="388" y2="289" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="388,284 398,289 388,294" fill="#484f58"/>
+  <line x1="330" y1="289" x2="393" y2="289" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="393,284 403,289 393,294" fill="#484f58"/>
 
-  <!-- Step 4: Commit -->
   <rect x="400" y="265" width="130" height="48" rx="8" fill="#161b22" stroke="#56d364" stroke-width="1.5"/>
-  <text x="465" y="287" text-anchor="middle" fill="#56d364" font-size="11" font-weight="700">4. PUSH</text>
-  <text x="465" y="302" text-anchor="middle" fill="#8b949e" font-size="9">commit + github</text>
+  <text x="465" y="287" text-anchor="middle" fill="#56d364" font-size="11" font-weight="bold" font-family="Arial, sans-serif">4. PUSH</text>
+  <text x="465" y="302" text-anchor="middle" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">commit + github</text>
 
-  <!-- Arrow up: Commit->Tweet -->
-  <line x1="465" y1="265" x2="465" y2="237" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="460,237 465,227 470,237" fill="#484f58" transform="translate(0,6)"/>
+  <line x1="465" y1="265" x2="465" y2="236" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="460,239 465,229 470,239" fill="#484f58"/>
 
-  <!-- Step 5: Tweet -->
   <rect x="400" y="185" width="130" height="48" rx="8" fill="#161b22" stroke="#ff9f1c" stroke-width="1.5"/>
-  <text x="465" y="207" text-anchor="middle" fill="#ff9f1c" font-size="11" font-weight="700">5. TWEET</text>
-  <text x="465" y="222" text-anchor="middle" fill="#8b949e" font-size="9">share progress</text>
+  <text x="465" y="207" text-anchor="middle" fill="#ff9f1c" font-size="11" font-weight="bold" font-family="Arial, sans-serif">5. TWEET</text>
+  <text x="465" y="222" text-anchor="middle" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">share progress</text>
 
-  <!-- Arrow up: Tweet->Cooldown -->
-  <line x1="465" y1="185" x2="465" y2="157" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="460,157 465,147 470,157" fill="#484f58" transform="translate(0,6)"/>
+  <line x1="465" y1="185" x2="465" y2="156" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="460,159 465,149 470,159" fill="#484f58"/>
 
-  <!-- Step 6: Cooldown -->
   <rect x="400" y="105" width="130" height="48" rx="8" fill="#161b22" stroke="#484f58" stroke-width="1.5"/>
-  <text x="465" y="127" text-anchor="middle" fill="#8b949e" font-size="11" font-weight="700">6. WAIT</text>
-  <text x="465" y="142" text-anchor="middle" fill="#6e7681" font-size="9">120s cooldown</text>
+  <text x="465" y="127" text-anchor="middle" fill="#8b949e" font-size="11" font-weight="bold" font-family="Arial, sans-serif">6. WAIT</text>
+  <text x="465" y="142" text-anchor="middle" fill="#6e7681" font-size="9" font-family="Arial, sans-serif">120s cooldown</text>
 
-  <!-- Loop arrow: Cooldown back to Plan -->
-  <path d="M 400 129 L 370 129 Q 350 129 350 115 Q 350 100 335 100 L 310 100 L 295 105" fill="none" stroke="#ff6b35" stroke-width="2" stroke-dasharray="6,3"/>
-  <polygon points="298,100 288,105 298,110" fill="#ff6b35"/>
-  <text x="355" y="93" text-anchor="middle" fill="#ff6b35" font-size="10" font-weight="700">LOOP</text>
+  <path d="M 400 129 L 355 129 Q 340 129 340 114 L 340 108 Q 340 100 330 100 L 300 100" fill="none" stroke="#ff6b35" stroke-width="2" stroke-dasharray="6,3"/>
+  <polygon points="303,95 293,100 303,105" fill="#ff6b35"/>
+  <text x="370" y="93" text-anchor="middle" fill="#ff6b35" font-size="10" font-weight="bold" font-family="Arial, sans-serif">LOOP</text>
 
-  <!-- ===== Divider ===== -->
   <line x1="590" y1="80" x2="590" y2="430" stroke="#21262d" stroke-width="1" stroke-dasharray="4,4"/>
 
-  <!-- ===== RIGHT: Growth Mode ===== -->
-  <text x="740" y="90" text-anchor="middle" fill="#a78bfa" font-size="14" font-weight="700">GROWTH MODE</text>
+  <text x="740" y="90" text-anchor="middle" fill="#a78bfa" font-size="14" font-weight="bold" font-family="Arial, sans-serif">GROWTH MODE</text>
 
-  <!-- Discover -->
   <rect x="670" y="110" width="140" height="42" rx="8" fill="#161b22" stroke="#a78bfa" stroke-width="1.5"/>
-  <text x="740" y="136" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">DISCOVER</text>
+  <text x="740" y="136" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="bold" font-family="Arial, sans-serif">DISCOVER</text>
 
-  <!-- Post -->
   <rect x="670" y="168" width="140" height="42" rx="8" fill="#161b22" stroke="#a78bfa" stroke-width="1.5"/>
-  <text x="740" y="194" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">POST</text>
+  <text x="740" y="194" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="bold" font-family="Arial, sans-serif">POST</text>
 
-  <!-- Engage -->
   <rect x="670" y="226" width="140" height="42" rx="8" fill="#161b22" stroke="#a78bfa" stroke-width="1.5"/>
-  <text x="740" y="252" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">ENGAGE</text>
+  <text x="740" y="252" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="bold" font-family="Arial, sans-serif">ENGAGE</text>
 
-  <!-- Learn -->
   <rect x="670" y="284" width="140" height="42" rx="8" fill="#161b22" stroke="#a78bfa" stroke-width="1.5"/>
-  <text x="740" y="310" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">LEARN</text>
+  <text x="740" y="310" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="bold" font-family="Arial, sans-serif">LEARN</text>
 
-  <!-- Growth arrows -->
-  <line x1="740" y1="152" x2="740" y2="164" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="735,164 740,174 745,164" fill="#484f58" transform="translate(0,-6)"/>
-  <line x1="740" y1="210" x2="740" y2="222" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="735,222 740,232 745,222" fill="#484f58" transform="translate(0,-6)"/>
-  <line x1="740" y1="268" x2="740" y2="280" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="735,280 740,290 745,280" fill="#484f58" transform="translate(0,-6)"/>
+  <line x1="740" y1="152" x2="740" y2="165" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="735,162 740,172 745,162" fill="#484f58"/>
+  <line x1="740" y1="210" x2="740" y2="223" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="735,220 740,230 745,220" fill="#484f58"/>
+  <line x1="740" y1="268" x2="740" y2="281" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="735,278 740,288 745,278" fill="#484f58"/>
 
-  <!-- Platforms box -->
   <rect x="660" y="345" width="160" height="55" rx="8" fill="#0d1117" stroke="#21262d" stroke-width="1"/>
-  <text x="740" y="366" text-anchor="middle" fill="#6e7681" font-size="9" font-weight="600">PLATFORMS</text>
-  <text x="740" y="384" text-anchor="middle" fill="#8b949e" font-size="10">Twitter  Reddit  HN</text>
-  <text x="740" y="398" text-anchor="middle" fill="#8b949e" font-size="10">Dev.to  LinkedIn</text>
+  <text x="740" y="366" text-anchor="middle" fill="#6e7681" font-size="9" font-weight="bold" font-family="Arial, sans-serif">PLATFORMS</text>
+  <text x="740" y="384" text-anchor="middle" fill="#8b949e" font-size="10" font-family="Arial, sans-serif">Twitter  Reddit  HN</text>
+  <text x="740" y="398" text-anchor="middle" fill="#8b949e" font-size="10" font-family="Arial, sans-serif">Dev.to  LinkedIn</text>
 
-  <!-- Arrow: Learn to Platforms -->
-  <line x1="740" y1="326" x2="740" y2="341" stroke="#484f58" stroke-width="1.5"/>
-  <polygon points="735,341 740,351 745,341" fill="#484f58" transform="translate(0,-6)"/>
+  <line x1="740" y1="326" x2="740" y2="342" stroke="#484f58" stroke-width="1.5"/>
+  <polygon points="735,339 740,349 745,339" fill="#484f58"/>
 
-  <!-- ===== Bottom: Config bar ===== -->
   <rect x="40" y="430" width="820" height="50" rx="8" fill="#161b22" stroke="#21262d" stroke-width="1"/>
-  <text x="60" y="452" fill="#6e7681" font-size="9" font-weight="700">CONFIG</text>
-  <text x="120" y="452" fill="#58a6ff" font-size="10" font-weight="600">program.md</text>
-  <text x="228" y="452" fill="#484f58" font-size="10">|</text>
-  <text x="248" y="452" fill="#56d364" font-size="10" font-weight="600">build_program.md</text>
-  <text x="392" y="452" fill="#484f58" font-size="10">|</text>
-  <text x="412" y="452" fill="#ff9f1c" font-size="10" font-weight="600">personality.md</text>
-  <text x="560" y="452" fill="#8b949e" font-size="9">edit these markdown files to customize all behavior</text>
-  <text x="60" y="470" fill="#8b949e" font-size="9">growth strategy</text>
-  <text x="248" y="470" fill="#8b949e" font-size="9">build rules + testing</text>
-  <text x="412" y="470" fill="#8b949e" font-size="9">voice + tone</text>
+  <text x="60" y="452" fill="#6e7681" font-size="9" font-weight="bold" font-family="Arial, sans-serif">CONFIG</text>
+  <text x="120" y="452" fill="#58a6ff" font-size="10" font-weight="bold" font-family="Arial, sans-serif">program.md</text>
+  <text x="228" y="452" fill="#484f58" font-size="10" font-family="Arial, sans-serif">|</text>
+  <text x="248" y="452" fill="#56d364" font-size="10" font-weight="bold" font-family="Arial, sans-serif">build_program.md</text>
+  <text x="392" y="452" fill="#484f58" font-size="10" font-family="Arial, sans-serif">|</text>
+  <text x="412" y="452" fill="#ff9f1c" font-size="10" font-weight="bold" font-family="Arial, sans-serif">personality.md</text>
+  <text x="560" y="452" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">edit these to customize all behavior</text>
+  <text x="60" y="470" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">growth strategy</text>
+  <text x="248" y="470" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">build rules + testing</text>
+  <text x="412" y="470" fill="#8b949e" font-size="9" font-family="Arial, sans-serif">voice + tone</text>
 
 </svg>
