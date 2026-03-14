@@ -704,167 +704,184 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
             return  # handled command, don't fall through to conversational
 
         # ── Conversational mode (no ! prefix) ──
-        async with message.channel.typing():
-            build_summary = builds.get_summary()
-            response, actions = await loop.run_in_executor(
-                None, llm_respond, content, build_summary, engine
-            )
+        # multi-step loop: run actions, feed results back to LLM if needed
+        user_message = content
+        max_steps = 4
 
-        # send the text response
-        if response:
-            await message.channel.send(response[:2000])
+        for step in range(max_steps):
+            async with message.channel.typing():
+                build_summary = builds.get_summary()
+                response, actions = await loop.run_in_executor(
+                    None, llm_respond, user_message, build_summary, engine
+                )
 
-        # execute actions
-        for action in actions:
-            action_type = action.get("type")
+            if response:
+                await message.channel.send(response[:2000])
 
-            if action_type == "build":
-                spec = action.get("spec", "")
-                name = action.get("name", re.sub(r'[^a-z0-9]+', '-', spec[:40].lower()).strip('-'))
-                if spec:
-                    await message.channel.send(embed=make_embed(
-                        f"Starting build: {name}",
-                        f"```\n{spec[:300]}\n```",
-                        color=0x2ea043,
-                    ))
-                    await builds.start_build(name, spec, message.channel, loop, engine=engine)
+            if not actions:
+                break
 
-            elif action_type == "autoship":
-                spec = action.get("spec", "")
-                slug = action.get("slug", "")
-                eng = action.get("engine", engine)
-                if spec:
-                    if not slug:
-                        slug = re.sub(r'[^a-z0-9]+', '-', spec[:40].lower()).strip('-')
-                    # write spec to temp file
-                    spec_path = SPECS_DIR / f"{slug}.md"
-                    spec_path.write_text(spec)
-                    await message.channel.send(embed=make_embed(
-                        f"AutoShip: {slug}",
-                        f"Building and deploying to `{slug}.autoship.fun`\n```\n{spec[:400]}\n```",
-                        color=0x2ea043,
-                    ))
-                    # run autoship in background
-                    cmd = [sys.executable, str(AUTOSHIP), str(spec_path),
-                           "-e", eng, "--deploy", "autoship", "--slug", slug]
+            # collect run outputs for follow-up
+            run_outputs = []
 
-                    def run_autoship(cmd=cmd, slug=slug):
-                        env = os.environ.copy()
-                        env.pop("CLAUDECODE", None)
-                        proc = subprocess.Popen(
-                            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            stdin=subprocess.DEVNULL, text=True, env=env,
-                        )
-                        output_lines = []
-                        for line in proc.stdout:
-                            line = line.rstrip()
-                            if line.strip():
-                                output_lines.append(line)
-                        proc.wait()
-                        return proc.returncode, output_lines
+            for action in actions:
+                action_type = action.get("type")
 
-                    rc, output = await loop.run_in_executor(None, run_autoship)
-
-                    # find the live URL from output
-                    url = f"https://{slug}.autoship.fun"
-                    for line in output:
-                        if "LIVE URL:" in line:
-                            url = line.split("LIVE URL:")[-1].strip()
-
-                    if rc == 0:
+                if action_type == "build":
+                    spec = action.get("spec", "")
+                    name = action.get("name", re.sub(r'[^a-z0-9]+', '-', spec[:40].lower()).strip('-'))
+                    if spec:
                         await message.channel.send(embed=make_embed(
-                            f"Shipped: {slug}",
-                            f"Live at {url}",
+                            f"Starting build: {name}",
+                            f"```\n{spec[:300]}\n```",
                             color=0x2ea043,
-                            fields=[("URL", url, False)],
                         ))
-                    else:
-                        last_lines = "\n".join(output[-15:])
+                        await builds.start_build(name, spec, message.channel, loop, engine=engine)
+
+                elif action_type == "autoship":
+                    spec = action.get("spec", "")
+                    slug = action.get("slug", "")
+                    eng = action.get("engine", engine)
+                    if spec:
+                        if not slug:
+                            slug = re.sub(r'[^a-z0-9]+', '-', spec[:40].lower()).strip('-')
+                        spec_path = SPECS_DIR / f"{slug}.md"
+                        spec_path.write_text(spec)
                         await message.channel.send(embed=make_embed(
-                            f"AutoShip Failed: {slug}",
-                            f"```\n{last_lines[-1500:]}\n```",
-                            color=0xda3633,
+                            f"AutoShip: {slug}",
+                            f"Building and deploying to `{slug}.autoship.fun`\n```\n{spec[:400]}\n```",
+                            color=0x2ea043,
+                        ))
+                        cmd = [sys.executable, str(AUTOSHIP), str(spec_path),
+                               "-e", eng, "--deploy", "autoship", "--slug", slug]
+
+                        def run_autoship(cmd=cmd, slug=slug):
+                            env = os.environ.copy()
+                            env.pop("CLAUDECODE", None)
+                            proc = subprocess.Popen(
+                                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                stdin=subprocess.DEVNULL, text=True, env=env,
+                            )
+                            output_lines = []
+                            for line in proc.stdout:
+                                line = line.rstrip()
+                                if line.strip():
+                                    output_lines.append(line)
+                            proc.wait()
+                            return proc.returncode, output_lines
+
+                        rc, output = await loop.run_in_executor(None, run_autoship)
+                        url = f"https://{slug}.autoship.fun"
+                        for line in output:
+                            if "LIVE URL:" in line:
+                                url = line.split("LIVE URL:")[-1].strip()
+                        if rc == 0:
+                            await message.channel.send(embed=make_embed(
+                                f"Shipped: {slug}", f"Live at {url}",
+                                color=0x2ea043, fields=[("URL", url, False)],
+                            ))
+                        else:
+                            last_lines = "\n".join(output[-15:])
+                            await message.channel.send(embed=make_embed(
+                                f"AutoShip Failed: {slug}",
+                                f"```\n{last_lines[-1500:]}\n```", color=0xda3633,
+                            ))
+
+                elif action_type == "stop":
+                    name = action.get("name", "")
+                    if name and builds.stop_build(name):
+                        await message.channel.send(embed=make_embed(
+                            "Build Stopped", f"Killed: **{name}**", color=0xda3633,
                         ))
 
-            elif action_type == "stop":
-                name = action.get("name", "")
-                if name and builds.stop_build(name):
-                    await message.channel.send(embed=make_embed(
-                        "Build Stopped", f"Killed: **{name}**", color=0xda3633,
-                    ))
+                elif action_type == "stop_all":
+                    stopped = builds.stop_all()
+                    if stopped:
+                        await message.channel.send(embed=make_embed(
+                            "All Builds Stopped",
+                            "Killed: " + ", ".join(stopped), color=0xda3633,
+                        ))
 
-            elif action_type == "stop_all":
-                stopped = builds.stop_all()
-                if stopped:
-                    await message.channel.send(embed=make_embed(
-                        "All Builds Stopped",
-                        "Killed: " + ", ".join(stopped),
-                        color=0xda3633,
-                    ))
+                elif action_type == "tweet":
+                    text = action.get("text", "")
+                    if text:
+                        ok, result = do_tweet(text)
+                        color = 0x2ea043 if ok else 0xda3633
+                        await message.channel.send(embed=make_embed(
+                            "Tweeted" if ok else "Tweet Failed",
+                            f"{text}\n\n{result}", color=color,
+                        ))
 
-            elif action_type == "tweet":
-                text = action.get("text", "")
-                if text:
-                    ok, result = do_tweet(text)
-                    color = 0x2ea043 if ok else 0xda3633
-                    await message.channel.send(embed=make_embed(
-                        "Tweeted" if ok else "Tweet Failed",
-                        f"{text}\n\n{result}", color=color,
-                    ))
+                elif action_type == "thread":
+                    tweets = action.get("tweets", [])
+                    if tweets:
+                        preview = "\n\n".join(f"**{i+1}.** {t}" for i, t in enumerate(tweets))
+                        await message.channel.send(embed=make_embed(
+                            f"Posting thread ({len(tweets)} tweets)...",
+                            preview[:4000], color=0x1da1f2,
+                        ))
+                        ok, result = do_thread(tweets)
+                        color = 0x2ea043 if ok else 0xda3633
+                        await message.channel.send(embed=make_embed(
+                            "Thread Posted" if ok else "Thread Failed",
+                            result[:2000], color=color,
+                        ))
 
-            elif action_type == "thread":
-                tweets = action.get("tweets", [])
-                if tweets:
-                    preview = "\n\n".join(f"**{i+1}.** {t}" for i, t in enumerate(tweets))
-                    await message.channel.send(embed=make_embed(
-                        f"Posting thread ({len(tweets)} tweets)...",
-                        preview[:4000], color=0x1da1f2,
-                    ))
-                    ok, result = do_thread(tweets)
-                    color = 0x2ea043 if ok else 0xda3633
-                    await message.channel.send(embed=make_embed(
-                        "Thread Posted" if ok else "Thread Failed",
-                        result[:2000], color=color,
-                    ))
-
-            elif action_type == "run":
-                cmd = action.get("command", "")
-                label = action.get("label", "Running command")
-                if cmd:
-                    await message.channel.send(embed=make_embed(
-                        label, f"```\n{cmd}\n```", color=0xa78bfa,
-                    ))
-                    try:
-                        result = await loop.run_in_executor(
-                            None, lambda c=cmd: subprocess.run(
-                                c, shell=True, capture_output=True,
-                                text=True, timeout=60,
+                elif action_type == "run":
+                    cmd = action.get("command", "")
+                    label = action.get("label", "Running command")
+                    if cmd:
+                        await message.channel.send(embed=make_embed(
+                            label, f"```\n{cmd}\n```", color=0xa78bfa,
+                        ))
+                        try:
+                            result = await loop.run_in_executor(
+                                None, lambda c=cmd: subprocess.run(
+                                    c, shell=True, capture_output=True,
+                                    text=True, timeout=60,
+                                )
                             )
-                        )
-                        output = (result.stdout + result.stderr).strip()
-                        if output:
-                            # truncate for discord
-                            if len(output) > 1800:
-                                output = output[:1800] + "\n... (truncated)"
-                            await message.channel.send(f"```\n{output}\n```")
-                        else:
-                            await message.channel.send("`(no output)`")
-                    except subprocess.TimeoutExpired:
-                        await message.channel.send("`(command timed out)`")
-                    except Exception as e:
-                        await message.channel.send(f"`Error: {e}`")
+                            output = (result.stdout + result.stderr).strip()
+                            if output:
+                                if len(output) > 1800:
+                                    output = output[:1800] + "\n... (truncated)"
+                                await message.channel.send(f"```\n{output}\n```")
+                                run_outputs.append(f"Command: {cmd}\nOutput:\n{output}")
+                            else:
+                                await message.channel.send("`(no output)`")
+                                run_outputs.append(f"Command: {cmd}\nOutput: (no output)")
+                        except subprocess.TimeoutExpired:
+                            await message.channel.send("`(command timed out)`")
+                            run_outputs.append(f"Command: {cmd}\nOutput: (timed out)")
+                        except Exception as e:
+                            await message.channel.send(f"`Error: {e}`")
+                            run_outputs.append(f"Command: {cmd}\nOutput: Error: {e}")
 
-            elif action_type == "reddit":
-                sub = action.get("subreddit", "")
-                title = action.get("title", "")
-                body = action.get("body", "")
-                await message.channel.send(embed=make_embed(
-                    f"Reddit Post Draft ({sub})",
-                    f"**{title}**\n\n{body[:1500]}",
-                    color=0xff4500,
-                    fields=[("Note", "Reddit posting requires browser auth. "
-                             "Copy this and post manually.", False)],
-                ))
+                elif action_type == "reddit":
+                    sub = action.get("subreddit", "")
+                    title = action.get("title", "")
+                    body = action.get("body", "")
+                    await message.channel.send(embed=make_embed(
+                        f"Reddit Post Draft ({sub})",
+                        f"**{title}**\n\n{body[:1500]}",
+                        color=0xff4500,
+                        fields=[("Note", "Reddit posting requires browser auth. "
+                                 "Copy this and post manually.", False)],
+                    ))
+
+            # if run commands produced output, feed results back to LLM for follow-up
+            if run_outputs:
+                results_text = "\n\n".join(run_outputs)
+                user_message = (
+                    f"PREVIOUS REQUEST: {content}\n\n"
+                    f"COMMAND RESULTS:\n{results_text}\n\n"
+                    f"Based on these results, complete the user's original request. "
+                    f"If you need to take further action (reply to a tweet, like something, etc.), "
+                    f"include the appropriate ACTION. If the task is done, just summarize what happened."
+                )
+                continue  # go back to LLM with results
+            else:
+                break  # no run outputs, we're done
 
     client.run(token)
 
