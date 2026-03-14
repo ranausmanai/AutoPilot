@@ -43,6 +43,7 @@ import discord
 # ─── Config ──────────────────────────────────────────────────────────────────
 
 AUTOPILOT = Path(__file__).resolve().parent.parent / "autopilot.py"
+AUTOSHIP = Path(__file__).resolve().parent.parent.parent / "autoship" / "autoship.py"
 BUILDS_DIR = Path.home() / ".autopilot" / "builds"
 LOGS_DIR = Path.home() / ".autopilot" / "logs"
 STRATEGY_DIR = Path.home() / ".autopilot" / "strategy"
@@ -292,6 +293,7 @@ You can include MULTIPLE actions — they run in sequence.
 
 Built-in actions:
 ACTION: {{"type": "build", "spec": "the spec text", "name": "project-name"}}
+ACTION: {{"type": "autoship", "spec": "the spec text", "slug": "app-name", "engine": "claude"}}
 ACTION: {{"type": "stop", "name": "project-name"}}
 ACTION: {{"type": "stop_all"}}
 ACTION: {{"type": "thread", "tweets": ["tweet 1", "tweet 2", "tweet 3"]}}
@@ -726,6 +728,63 @@ def create_bot(token, channel_id, owner_id, engine="claude"):
                         color=0x2ea043,
                     ))
                     await builds.start_build(name, spec, message.channel, loop, engine=engine)
+
+            elif action_type == "autoship":
+                spec = action.get("spec", "")
+                slug = action.get("slug", "")
+                eng = action.get("engine", engine)
+                if spec:
+                    if not slug:
+                        slug = re.sub(r'[^a-z0-9]+', '-', spec[:40].lower()).strip('-')
+                    # write spec to temp file
+                    spec_path = SPECS_DIR / f"{slug}.md"
+                    spec_path.write_text(spec)
+                    await message.channel.send(embed=make_embed(
+                        f"AutoShip: {slug}",
+                        f"Building and deploying to `{slug}.autoship.fun`\n```\n{spec[:400]}\n```",
+                        color=0x2ea043,
+                    ))
+                    # run autoship in background
+                    cmd = [sys.executable, str(AUTOSHIP), str(spec_path),
+                           "-e", eng, "--deploy", "autoship", "--slug", slug]
+
+                    def run_autoship(cmd=cmd, slug=slug):
+                        env = os.environ.copy()
+                        env.pop("CLAUDECODE", None)
+                        proc = subprocess.Popen(
+                            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            stdin=subprocess.DEVNULL, text=True, env=env,
+                        )
+                        output_lines = []
+                        for line in proc.stdout:
+                            line = line.rstrip()
+                            if line.strip():
+                                output_lines.append(line)
+                        proc.wait()
+                        return proc.returncode, output_lines
+
+                    rc, output = await loop.run_in_executor(None, run_autoship)
+
+                    # find the live URL from output
+                    url = f"https://{slug}.autoship.fun"
+                    for line in output:
+                        if "LIVE URL:" in line:
+                            url = line.split("LIVE URL:")[-1].strip()
+
+                    if rc == 0:
+                        await message.channel.send(embed=make_embed(
+                            f"Shipped: {slug}",
+                            f"Live at {url}",
+                            color=0x2ea043,
+                            fields=[("URL", url, False)],
+                        ))
+                    else:
+                        last_lines = "\n".join(output[-15:])
+                        await message.channel.send(embed=make_embed(
+                            f"AutoShip Failed: {slug}",
+                            f"```\n{last_lines[-1500:]}\n```",
+                            color=0xda3633,
+                        ))
 
             elif action_type == "stop":
                 name = action.get("name", "")
