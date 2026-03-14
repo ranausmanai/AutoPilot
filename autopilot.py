@@ -729,15 +729,32 @@ def llm_agent(prompt, workdir, engine, timeout=None, reasoning=None):
         watcher = threading.Thread(target=watch_files, daemon=True)
         watcher.start()
 
-        for line in proc.stdout:
-            line = line.rstrip("\n")
-            output_lines.append(line)
-            last_output_time[0] = time.time()
-            if line.strip():
-                # clear heartbeat line and print actual output
-                print(f"\033[2K       {DIM}{line[:120]}{RESET}")
+        import select
+        stall_limit = 600  # kill if no output for 10 minutes
+        while True:
+            # use select to wait for output with a timeout
+            ready, _, _ = select.select([proc.stdout], [], [], 30)
+            if ready:
+                line = proc.stdout.readline()
+                if not line:  # EOF — process done
+                    break
+                line = line.rstrip("\n")
+                output_lines.append(line)
+                last_output_time[0] = time.time()
+                if line.strip():
+                    print(f"\033[2K       {DIM}{line[:120]}{RESET}")
+            else:
+                # no output for 30s, check if stalled
+                stall_time = time.time() - last_output_time[0]
+                if stall_time > stall_limit:
+                    print(f"\033[2K       {YELLOW}  ⚠ Agent stalled for {int(stall_time)}s, killing...{RESET}")
+                    proc.kill()
+                    break
+                # also check if process has exited
+                if proc.poll() is not None:
+                    break
 
-        proc.wait(timeout=timeout)
+        proc.wait(timeout=30)
         stop_watch.set()
         watcher.join(timeout=5)
 
