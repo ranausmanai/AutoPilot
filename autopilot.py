@@ -21,6 +21,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import textwrap
 import time
 from datetime import datetime, timedelta
@@ -599,19 +600,38 @@ def llm(prompt, engine, reasoning=None, timeout=300):
     env = os.environ.copy()
     env.pop("CLAUDECODE", None)
     if engine == "claude":
-        result = subprocess.run(
-            ["claude", "-p", prompt, "--no-session-persistence"],
-            capture_output=True, text=True, timeout=timeout, env=env,
-        )
+        # for long prompts, write to temp file and use cat pipe
+        if len(prompt) > 50000:
+            tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+            tmp.write(prompt)
+            tmp.close()
+            try:
+                result = subprocess.run(
+                    f"cat '{tmp.name}' | claude -p --no-session-persistence",
+                    shell=True, capture_output=True, text=True, timeout=timeout, env=env,
+                )
+            finally:
+                os.unlink(tmp.name)
+        else:
+            result = subprocess.run(
+                ["claude", "-p", prompt, "--no-session-persistence"],
+                capture_output=True, text=True, timeout=timeout, env=env,
+            )
     else:
-        # only override reasoning if explicitly set, otherwise use codex config default
+        # codex: write prompt to temp file to avoid CLI arg length/escaping issues
         cmd = ["codex", "exec"]
         if reasoning:
             cmd += ["-c", f'model_reasoning_effort="{reasoning}"']
-        cmd.append(prompt)
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout, env=env,
-        )
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, dir='/tmp')
+        tmp.write(prompt)
+        tmp.close()
+        try:
+            cmd.append(f"Follow the instructions in {tmp.name}")
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout, env=env,
+            )
+        finally:
+            os.unlink(tmp.name)
     if result.returncode != 0:
         detail = (result.stderr or result.stdout).strip()
         raise RuntimeError(detail[:500] or f"{engine} failed")
