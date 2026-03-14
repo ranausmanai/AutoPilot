@@ -344,12 +344,12 @@ def do_tweet(text):
     """Post a tweet using twitter-cli."""
     try:
         result = subprocess.run(
-            ["twitter", "update", text],
+            ["twitter", "post", text],
             capture_output=True, text=True, timeout=30,
         )
         if result.returncode == 0:
             return True, result.stdout.strip()[:200]
-        return False, result.stderr[:200]
+        return False, (result.stderr or result.stdout).strip()[:200]
     except FileNotFoundError:
         return False, "twitter-cli not installed"
     except Exception as e:
@@ -358,7 +358,7 @@ def do_tweet(text):
 
 # ─── Bot ─────────────────────────────────────────────────────────────────────
 
-def create_bot(token, channel_id, engine="claude"):
+def create_bot(token, channel_id, owner_id, engine="claude"):
     intents = discord.Intents.default()
     intents.message_content = True
     client = discord.Client(intents=intents)
@@ -367,21 +367,34 @@ def create_bot(token, channel_id, engine="claude"):
     @client.event
     async def on_ready():
         print(f"  ground control online as {client.user}")
-        print(f"  watching channel: {channel_id}")
-        ch = client.get_channel(channel_id)
-        if ch:
-            await ch.send(embed=make_embed(
-                "Ground Control Online",
-                "Talk to me naturally or use `!help` for commands.\n"
-                "I can run parallel builds, tweet, post to reddit, and more.",
-                color=0x58a6ff,
-            ))
+        if channel_id:
+            print(f"  watching channel: {channel_id}")
+            ch = client.get_channel(channel_id)
+            if ch:
+                await ch.send(embed=make_embed(
+                    "Ground Control Online",
+                    "Talk to me naturally or use `!help` for commands.\n"
+                    "I can run parallel builds, tweet, post to reddit, and more.",
+                    color=0x58a6ff,
+                ))
+        print(f"  DMs: enabled")
+        if owner_id:
+            print(f"  owner: {owner_id}")
 
     @client.event
     async def on_message(message):
         if message.author.bot:
             return
-        if channel_id and message.channel.id != channel_id:
+
+        is_dm = isinstance(message.channel, discord.DMChannel)
+        is_allowed_channel = channel_id and message.channel.id == channel_id
+        is_owner = owner_id and message.author.id == owner_id
+
+        # allow: DMs from owner (or anyone if no owner set), or the designated channel
+        if is_dm:
+            if owner_id and not is_owner:
+                return  # DM from someone else, ignore
+        elif not is_allowed_channel:
             return
 
         content = message.content.strip()
@@ -663,21 +676,32 @@ setup:
   5. Right-click your channel > Copy Channel ID (enable Developer Mode in settings)
 
 run:
+  # DM mode (just talk to the bot directly)
+  python3 ground_control.py --token YOUR_TOKEN --owner YOUR_DISCORD_USER_ID
+
+  # channel mode (bot listens in a specific channel)
   python3 ground_control.py --token YOUR_TOKEN --channel CHANNEL_ID
 
-  # or use env vars
-  AUTOPILOT_DISCORD_TOKEN=xxx AUTOPILOT_DISCORD_CHANNEL=123 python3 ground_control.py
+  # both (DMs + channel)
+  python3 ground_control.py --token YOUR_TOKEN --owner USER_ID --channel CHANNEL_ID
 
-  # use codex instead of claude for conversational responses
-  python3 ground_control.py --token TOKEN --channel ID --engine codex
+  # env vars work too
+  AUTOPILOT_DISCORD_TOKEN=xxx AUTOPILOT_DISCORD_OWNER=123 python3 ground_control.py
+
+how to get your user ID:
+  Discord Settings > Advanced > enable Developer Mode
+  Click your own profile > Copy User ID
 """
     )
     p.add_argument("--token", type=str,
                    default=os.environ.get("AUTOPILOT_DISCORD_TOKEN"),
                    help="Discord bot token (or set AUTOPILOT_DISCORD_TOKEN)")
     p.add_argument("--channel", type=int,
-                   default=int(os.environ.get("AUTOPILOT_DISCORD_CHANNEL", "0")),
-                   help="Discord channel ID (or set AUTOPILOT_DISCORD_CHANNEL)")
+                   default=int(os.environ.get("AUTOPILOT_DISCORD_CHANNEL", "0")) or None,
+                   help="Discord channel ID — optional (or set AUTOPILOT_DISCORD_CHANNEL)")
+    p.add_argument("--owner", type=int,
+                   default=int(os.environ.get("AUTOPILOT_DISCORD_OWNER", "0")) or None,
+                   help="Your Discord user ID — locks DMs to only you (or set AUTOPILOT_DISCORD_OWNER)")
     p.add_argument("--engine", type=str, default="claude", choices=["claude", "codex"],
                    help="LLM engine for conversational mode (default: claude)")
 
@@ -686,16 +710,21 @@ run:
     if not args.token:
         print("Error: provide --token or set AUTOPILOT_DISCORD_TOKEN")
         sys.exit(1)
-    if not args.channel:
-        print("Error: provide --channel or set AUTOPILOT_DISCORD_CHANNEL")
+    if not args.channel and not args.owner:
+        print("Error: provide --channel and/or --owner")
+        print("  --owner YOUR_ID   → bot responds to your DMs")
+        print("  --channel CHAN_ID  → bot responds in a channel")
         sys.exit(1)
 
     print(f"\n{'='*50}")
     print(f"  ground control")
     print(f"{'='*50}")
-    print(f"  channel:  {args.channel}")
+    if args.owner:
+        print(f"  owner:    {args.owner} (DMs enabled)")
+    if args.channel:
+        print(f"  channel:  {args.channel}")
     print(f"  engine:   {args.engine}")
     print(f"  autopilot: {AUTOPILOT}")
     print(f"{'='*50}\n")
 
-    create_bot(args.token, args.channel, args.engine)
+    create_bot(args.token, args.channel, args.owner, args.engine)
